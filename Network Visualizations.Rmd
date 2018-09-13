@@ -1,0 +1,95 @@
+---
+title: "Network Visualizations"
+author: "Donato Scarano"
+date: "12 settembre 2018"
+output: html_document
+---
+
+## Introduction
+
+We are creating a sample of network visulization based on Airlines and Media sample network data.
+The data has been divided in two files one for Edges and the second one for Nodes.
+We load the two datasets:
+
+```{r echo=FALSE}
+library(readr)
+DEDGES <- read_csv("C:/Users/dscarano/Downloads/Data files/Dataset1-Media-Example-EDGES.csv")
+DNODES <- read_csv("C:/Users/dscarano/Downloads/Data files/Dataset1-Media-Example-NODES.csv")
+```
+
+## Plotting the Network
+
+we start plotting the network using the Igraph library with size and width showing the size of the audience and weight respectively:
+
+```{r}
+library(igraph)
+net<-graph_from_data_frame(d=DEDGES,vertices = DNODES,directed = TRUE)
+V(net)$size<-V(net)$audience.size*0.5
+E(net)$width<-E(net)$weight/5
+plot(net,edge.arrow.size=.2,edege.color="blue",vertex.color="orange",vertex.label=V(net)$media, layout=layout.circle)
+```
+
+Let us remove some clutter and make it simpler.
+
+```{r}
+library(igraph)
+net<-graph_from_data_frame(d=DEDGES,vertices = DNODES,directed = TRUE)
+plot(net,edge.arrow.size=.2,edege.color="blue",vertex.color="orange",vertex.label=V(net)$media, layout=layout.circle,edge.curved=.2,frame=TRUE)
+```
+
+## Layout Samples
+
+Some different layout samples illustrated (Circle,Grid,Random,Multidimensional Scaling and Fruchterman-Reingold).
+
+```{r}
+library(igraph)
+net<-graph_from_data_frame(d=DEDGES,vertices = DNODES,directed = TRUE)
+par(mfrow=c(3,3),mar=c(0,0,0,0))
+plot(net,edge.arrow.size=.2,edege.color="blue",vertex.color="orange",vertex.label=V(net)$media, layout=layout.circle,frame=TRUE)
+plot(net,edge.arrow.size=.2,edege.color="blue",vertex.color="orange",vertex.label=V(net)$media, layout=layout.grid,frame=TRUE)
+plot(net,edge.arrow.size=.2,edege.color="blue",vertex.color="orange",vertex.label=V(net)$media, layout=layout.random,frame=TRUE)
+plot(net,edge.arrow.size=.2,edege.color="blue",vertex.color="orange",vertex.label=V(net)$media, layout=layout_with_mds,frame=TRUE)
+plot(net,edge.arrow.size=.2,edege.color="blue",vertex.color="orange",vertex.label=V(net)$media, layout=layout_with_fr,frame=TRUE)
+plot(net,edge.arrow.size=.2,edege.color="blue",vertex.color="orange",vertex.label=V(net)$media, layout=layout.fruchterman.reingold,frame=TRUE)
+```
+
+## Heatmap
+
+```{r}
+heatm <- as_adjacency_matrix(net, attr="weight", sparse=F)
+colnames(heatm) <- V(net)$media
+rownames(heatm) <- V(net)$media
+palf <- colorRampPalette(c("gold", "dark orange")) 
+heatmap(heatm[,17:1], Rowv = NA, Colv = NA, col = palf(100), 
+        scale="none", margins=c(10,10) )
+
+```
+
+## Geographic Maps
+
+```{r echo=FALSE}
+library(readr)
+DEDGES <- read_csv("C:/Users/dscarano/Downloads/Data files/Dataset3-Airlines-EDGES.csv")
+DNODES <- read_csv("C:/Users/dscarano/Downloads/Data files/Dataset3-Airlines-NODES.csv")
+```
+
+Let us draw the geography layer and over impose the routes in this case as example we are drawing all the connections from Charlotte:
+
+```{r}
+library("maps")
+library("geosphere")
+map("state")
+points(x=DNODES$longitude, y=DNODES$latitude, pch=19,cex=DNODES$Visits/150, col="red")
+for(i in 1:nrow(DEDGES))  {
+    node1 <- DNODES[DNODES$Code=="CLT",]
+    node2 <- DNODES[DNODES$ID == DEDGES[i,]$Target,]
+    
+    arc <- gcIntermediate( c(node1[1,]$longitude, node1[1,]$latitude), 
+                           c(node2[1,]$longitude, node2[1,]$latitude), 
+                           n=1000, addStartEnd=TRUE )
+    edge.ind <- round(100*DEDGES[i,]$Freq / max(DEDGES$Freq))
+    
+    lines(arc)
+}
+```
+
